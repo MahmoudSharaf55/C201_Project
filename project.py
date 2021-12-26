@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 import csv
-import statistics
+import math
 
 splash_root = tk.Tk()
 splash_root.title("Splash Screen")
@@ -51,6 +51,18 @@ def compute_show_grade():
         messagebox.showerror("Error", "Read data first and try again.")
 
 
+def calc_mean(num_list):
+    return sum(num_list) / len(num_list)
+
+
+def calc_variance(num_list):
+    mean = calc_mean(num_list)
+    x_from_mean = 0
+    for x in num_list:
+        x_from_mean += math.pow((x - mean), 2)
+    return x_from_mean / (len(num_list) - 1)
+
+
 def descriptive_statistics():
     if data_header is not None and data_rows is not None:
         hours = []
@@ -58,50 +70,62 @@ def descriptive_statistics():
         for row in data_rows:
             hours.append(int(row[2]))
             scores.append(int(row[3]))
-        print(hours)
-        print("Mean of the sample is % s " % (statistics.mean(hours).__round__(2)))
         messagebox.showinfo("Hours Statistics",
-                            "\tMean = % s" % statistics.mean(hours).__round__(2) + "\n\tStandard Deviation= "
-                                                                                   "% s " %
-                            statistics.stdev(hours).__round__(2) + "\n\tVariance= "
-                                                                   "% s " % statistics.variance(hours).__round__(2))
+                            f"\tMean = {calc_mean(hours).__round__(2)} \n\tStandard Deviation= {math.sqrt(calc_variance(hours)).__round__(2)}\n\tVariance= {calc_variance(hours).__round__(2)}")
         messagebox.showinfo("Score Statistics",
-                            "\tMean = % s" % statistics.mean(scores).__round__(2) + "\n\tStandard Deviation= "
-                                                                                    "% s " %
-                            statistics.stdev(scores).__round__(2) + "\n\tVariance= "
-                                                                    "% s " % statistics.variance(scores).__round__(2))
+                            f"\tMean = {calc_mean(scores).__round__(2)} \n\tStandard Deviation= {math.sqrt(calc_variance(scores)).__round__(2)}\n\tVariance= {calc_variance(scores).__round__(2)}")
     else:
         messagebox.showerror("Error", "Read data first and try again.")
 
 
+def sum_multiple_2_list(list1, list2):
+    _sum = 0
+    for i, val in enumerate(list1):
+        _sum += list1[i] * list2[i]
+    return _sum
+
+
+def estimate_coef(x, y):
+    n = len(x)
+    mean_x = calc_mean(x)
+    mean_y = calc_mean(y)
+
+    # calculating cross-deviation and deviation about x
+    ss_xy = sum_multiple_2_list(y, x) - n * mean_y * mean_x
+    ss_xx = sum_multiple_2_list(x, x) - n * mean_x * mean_x
+
+    # calculating regression coefficients
+    b1 = ss_xy / ss_xx
+    b0 = mean_y - b1 * mean_x
+
+    return (b0, b1)
+
+
 def regression_analysis():
-    file = open('data.csv')
-    csvreader = csv.reader(file)
-    global data_header
-    global data_rows
-    data_header = next(csvreader)
-    data_rows = []
-    for row in csvreader:
-        data_rows.append(row)
-    file.close()
     if data_header is not None and data_rows is not None:
         hours = []
         scores = []
         for row in data_rows:
             hours.append(int(row[2]))
             scores.append(int(row[3]))
-        print(hours)
-        print("Mean of the sample is % s " % (statistics.mean(hours).__round__(2)))
-        messagebox.showinfo("Hours Statistics",
-                            "\tMean = % s" % statistics.mean(hours).__round__(2) + "\n\tStandard Deviation= "
-                                                                                   "% s " %
-                            statistics.stdev(hours).__round__(2) + "\n\tVariance= "
-                                                                   "% s " % statistics.variance(hours).__round__(2))
-        messagebox.showinfo("Score Statistics",
-                            "\tMean = % s" % statistics.mean(scores).__round__(2) + "\n\tStandard Deviation= "
-                                                                                    "% s " %
-                            statistics.stdev(scores).__round__(2) + "\n\tVariance= "
-                                                                    "% s " % statistics.variance(scores).__round__(2))
+        b0, b1 = estimate_coef(hours, scores)
+        messagebox.showinfo("The Regression Equation", f"Y = {b0.__round__(3)} + {b1.__round__(3)} X")
+    else:
+        messagebox.showerror("Error", "Read data first and try again.")
+
+
+def prediction():
+    if data_header is not None and data_rows is not None:
+        hours = []
+        scores = []
+        for row in data_rows:
+            hours.append(int(row[2]))
+            scores.append(int(row[3]))
+        b0, b1 = estimate_coef(hours, scores)
+        num_hours = simpledialog.askfloat("Predict Score", "What is the number of hours", parent=main_root)
+        if num_hours is not None:
+            predict_score = b0 + b1 * num_hours
+            messagebox.showinfo("Predict Score", f"The Predict Score is: {predict_score.__round__(1)}")
     else:
         messagebox.showerror("Error", "Read data first and try again.")
 
@@ -175,8 +199,9 @@ def main_screen():
     tk.Button(main_root, text="Descriptive Statistics", bg="#e0e0e0", command=descriptive_statistics).pack(fill=tk.X,
                                                                                                            padx=20,
                                                                                                            pady=10)
-    tk.Button(main_root, text="Regression Analysis", bg="#e0e0e0").pack(fill=tk.X, padx=20, pady=10)
-    tk.Button(main_root, text="Prediction", bg="#e0e0e0").pack(fill=tk.X, padx=20, pady=10)
+    tk.Button(main_root, text="Regression Analysis", bg="#e0e0e0", command=regression_analysis).pack(fill=tk.X, padx=20,
+                                                                                                     pady=10)
+    tk.Button(main_root, text="Prediction", bg="#e0e0e0", command=prediction).pack(fill=tk.X, padx=20, pady=10)
     tk.Button(main_root, text="Exit", bg="#b86363", command=exit_).pack(fill=tk.X, padx=20, pady=10)
 
 
